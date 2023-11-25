@@ -1,4 +1,4 @@
-# Portafolio de Implementación del módulo de Natural Language Processing
+# Portafolio de Análisis del módulo de Natural Language Processing
 
 - Reporte NLP.pdf:
     - Reporte de la actividad sobre hacer un resumen y un transcripción de un archivo de audio, haciendo uso de la api de openai para usar chat-gpt. También se usa streamlit para generar una interfaz gráfica.
