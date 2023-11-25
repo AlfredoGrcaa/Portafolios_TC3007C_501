@@ -1,0 +1,227 @@
+---
+title: "A8-Series de Tiempo no Estaiconales"
+author: "Alfredo García"
+format: html
+editor: visual
+---
+
+## Leemos los datos
+
+```{r}
+# Crear el marco de datos
+datos <- data.frame(Año = rep(1:4, 4),
+                    Trimestre = rep(1:4, times = 4),
+                    Ventas = c(4.8, 4.1, 6.0, 6.5, 5.8, 5.2, 6.8, 7.4, 6.0, 5.6, 7.5, 7.8, 6.3, 5.9, 8.0, 8.4))
+
+datos
+```
+
+### Realiza el gráfico de dispersión. Observa la tendencia y los ciclos.
+
+```{r}
+# Cargar la librería ggplot2 para crear gráficos
+library(ggplot2)
+
+# Crear una etiqueta única para cada trimestre independientemente del año
+datos$Trimestre_unico <- interaction(datos$Año, datos$Trimestre, drop = TRUE)
+
+# Crear el gráfico de dispersión de la serie de tiempo
+ggplot(datos, aes(x = Trimestre_unico, y = Ventas, color = factor(Año))) +
+  geom_point() +
+  labs(
+    title = "Serie de Tiempo de Ventas por Trimestre",
+    x = "Trimestre",
+    y = "Ventas",
+    color = "Año"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+### Realiza el análisis de tendencia y estacionalidad
+
+
+
+### Descompón la serie en sus 3 componentes e interprétalos
+
+```{r}
+# Crear una serie de tiempo
+library(forecast)
+T <- ts(datos$Ventas, frequency = 4, start = c(2016, 1))
+
+# Descomponer la serie de tiempo
+D_m <- decompose(T, type = "multiplicative")
+
+# Gráfico de dispersión
+plot(D_m)
+```
+```{r}
+# Crear una serie de tiempo
+library(forecast)
+T <- ts(datos$Ventas, frequency = 4, start = c(2016, 1))
+
+# Descomponer la serie de tiempo
+D_a <- decompose(T, type = "additive")
+
+# Gráfico de dispersión
+plot(D_a)
+```
+
+*Tendencia:* Es la dirección general en la que la serie de tiempo parece estar creciendo o decreciendo a lo largo del tiempo. Si la serie de tiempo muestra un patrón ascendente o descendente a largo plazo, esta componente representará ese comportamiento.
+
+*Estacionalidad:* Se refiere a patrones recurrentes o cíclicos que ocurren en la serie de tiempo en intervalos regulares. Por ejemplo, si hay fluctuaciones que se repiten cada cierto período (como estacionalidad anual, trimestral, mensual, etc.), este componente representará esas variaciones predecibles.
+
+*Componente aleatorio:* También conocido como residuo, este componente captura cualquier variación que no pueda ser atribuida a la tendencia o a la estacionalidad. Representa el ruido o la variabilidad irregular que queda después de que se han tenido en cuenta la tendencia y la estacionalidad.
+
+
+### Analiza el modelo lineal de la tendencia:
+#### Realiza la regresión lineal de la tendencia (ventas desestacionalizadas vs tiempo)
+
+##### additive
+
+```{r}
+ventas_desestacionalizadas = (D_a$x)/(D_a$seasonal)
+x3 = 1:16
+y3 = ventas_desestacionalizadas
+N3 = lm(y3~x3)
+N3
+plot(x3, y3, type = "l")
+abline(N3, col = "red")
+text(6, 7, " ventas = 5.1080 + 0.1474 trimestre")
+summary(N3)
+```
+
+##### multiplicative
+```{r}
+ventas_desestacionalizadas = (D_m$x)/(D_m$seasonal)
+x3 = 1:16
+y3 = ventas_desestacionalizadas
+N3 = lm(y3~x3)
+N3
+plot(x3, y3, type = "l")
+abline(N3, col = "red")
+text(6, 7, " ventas = 5.1080 + 0.1474 trimestre")
+summary(N3)
+```
+
+Dibuja la recta junto con las ventas desestacionalizadas.
+Analiza la pertinencia del modelo lineal:
+Significancia de β1
+Variabilidad explicada por el modelo (c.d)
+Análisis de los residuos
+```{r}
+# Obtener los residuos del modelo
+residuos <- residuals(N3)
+
+# Gráfico de los residuos
+plot(x3, residuos, type = "b", xlab = "Trimestre", ylab = "Residuos",
+     main = "Gráfico de Residuos")
+
+# Línea horizontal en 0 para referencia
+abline(h = 0, col = "red")
+
+# Análisis estadístico de los residuos
+summary(residuos)
+
+```
+
+
+### Prueba de normalidad
+
+```{r}
+# Prueba de normalidad Shapiro-Wilk
+shapiro.test(residuos)
+```
+The null hypothesis is states that the population is normally distributed i.e if the p-value is greater than 0.05, then the null hypothesis is accepted.
+
+### Calcula el CME y el EPAM (promedio de los errores porcentuales) de la predicción de la serie de tiempo.
+
+```{r}
+# Obtener predicciones del modelo
+predicciones <- predict(N3)
+
+# Calcular el Error Cuadrático Medio (CME)
+residuos_cuadrados <- residuos^2
+CME <- mean(residuos_cuadrados)
+
+# Calcular el Error Porcentual Absoluto Medio (EPAM)
+errores_porcentuales <- abs(residuos / y3) * 100
+EPAM <- mean(errores_porcentuales, na.rm = TRUE)
+
+# Mostrar los resultados
+CME
+EPAM
+```
+
+
+### Dibuja el gráfico de los valores de las ventas y las predicciones vs el tiempo
+```{r}
+# Graficar valores reales de ventas y predicciones versus tiempo
+plot(x3, y3, type = "l", col = "blue", ylim = range(c(y3, predicciones)), xlab = "Trimestre", ylab = "Ventas desestacionalizadas")
+lines(x3, predicciones, col = "red")
+legend("topright", legend = c("Ventas reales", "Predicciones"), col = c("blue", "red"), lty = 1)
+
+```
+
+### Concluye sobre el modelo: de acuerdo al análisis de verificación de los supuestos, ¿es el mejor modelo que puedes obtener?
+El mejor modelo en este caso es el multiplicativo, ya que, al hacer el modelo podemos darnos cuenta de que los coeficientes en el caso del aditivo no son significativos, por lo que, las conclucsiones que saquemos de ahí no son confiables (alpha = 0.05)
+
+### Propón un posible mejor modelo para la tendencia de los datos.
+Un mejor modelo para la tendencia de los datos si nos limitamos a la actividad podemos decir que la mejor alternativa es el multiplicativo que pasa todos los test y además este en su coeficiente B_1 es significativo a diferencia del modelo anterior (aditivo). Y si podemos explorar en otras alternativas, diría que el uso de modelos como SARIMAX o SARIMA podrían ayudar en gran medida a mejorar el modelo, debido a la presencia de tendencia y que se pueden ver ciclos marcados en las graficas en donde descompusimos los comonentes de la TS.
+
+### Realiza el pronóstico para el siguiente año.
+
+```{r}
+f = function(x) {5.1080 + 0.1474*x}
+a1 = D_m$seasonal[1]
+a2 =D_m$seasonal[2]
+a3 = D_m$seasonal[3]
+a4 = D_m$seasonal[4];
+print(f(17)*a1*1000)
+print(f(18)*a2*1000)
+print(f(19)*a3*1000)
+print(f(20)*a4*1000)
+```
+
+
+# Realiza el problema de "Un problemilla más" sobre las ventas trimestraless de libros de texto universitarios.
+
+```{r}
+ventas <- data.frame(
+  trimestre = c(1, 2, 3, 4),
+  a1 = c(1690, 940, 2625, 2500),
+  a2 = c(1800, 900, 2900, 2360),
+  a3 = c(1850, 1100, 2930, 2615)
+)
+```
+
+### a) Encuentre los promedios móviles de cuatro trimestres y los promedios móviles centrados
+
+```{r}
+ventas$promedio_movil4 <- rowMeans(ventas[, c("a1", "a2", "a3")])
+ventas$promedio_movil_centrado <- c(NA, head(ventas$promedio_movil4, -1) + tail(ventas$promedio_movil4, -1))/2
+print(ventas[, c("trimestre", "promedio_movil4", "promedio_movil_centrado")])
+```
+
+
+### b) Calcule los índices estacionales de los cuatro trimestres
+
+```{r}
+promedio_anual <- colMeans(ventas[, c("a1", "a2", "a3")])
+indices_estacionales <- t(t(ventas[, c("a1", "a2", "a3")]) / promedio_anual) * 100
+print(indices_estacionales)
+```
+
+### c) ¿Cuándo obtiene la editorial el mayor índice estacional? ¿Parece razonable este
+
+```{r}
+trimestre_max_indice <- which.max(apply(indices_estacionales, 2, max))
+trimestre_max_indice
+```
+
+Sí, es razonable porque podemos ver desde un inicio que se trata del trimestre en el que hay una mayor cantidad de vetas con respecto a los demás
+
+
+
