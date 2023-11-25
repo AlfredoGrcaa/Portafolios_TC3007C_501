@@ -63,7 +63,8 @@ Portafolios del bloque de Inteligencia artificial avanzada para la ciencia de da
 - Actividad 4
     - A4-Regresión Poisson.pdf: Reporte de la activiad de la Regresión Poisson.
     - A4-Regresión Poisson.qmd: Codigo en R de la activiad de la Regresión Poisson.
-    
+
+- Actividad 5
     - A5-Regresión logística.pdf: Reporte de la activiad de Regresión logística.
     - A5-Regresión logística.qmd: Codigo en R de la activiad de Regresión logística.
 
