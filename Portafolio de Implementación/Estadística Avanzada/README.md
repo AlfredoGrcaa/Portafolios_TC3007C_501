@@ -9,3 +9,7 @@ Portafolio de Implementación del módulo de Estadística Avanzada
 - A7-Introducción a series de tiempo estacionarias.pdf: Reporte de la activiad de Introducción a series de tiempo estacionarias.
 - A7-Introducción a series de tiempo estacionarias.qmd: Codigo en R de la activiad de Introducción a series de tiempo estacionarias.
 
+- A8-Series de Tiempo no Estacionarias.pdf: Reporte de la activiad de Introducción a Series de Tiempo no Estacionarias.
+- A8-Series de Tiempo no Estacionarias.qmd: Codigo en R de la activiad de Introducción a Series de Tiempo no Estacionarias.
+
+
