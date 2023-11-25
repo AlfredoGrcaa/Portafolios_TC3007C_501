@@ -1,0 +1,230 @@
+---
+title: "A5-Regresión logística"
+author: "Alfredo García"
+format: html
+editor: visual
+---
+
+Trabaja con el set de datos Weekly, que forma parte de la librería ISLR. Este set de datos contiene información sobre el rendimiento porcentual semanal del índice bursátil S&P 500 entre los años 1990 y 2010. Se busca predecir el tendimiento (positivo o negativo) dependiendo del comportamiento previo de diversas variables de la bolsa bursátil S&P 500.
+
+```{r}
+library(ISLR)
+
+# Cargar el conjunto de datos Weekly
+data("Weekly")
+df <- Weekly
+```
+
+```{r}
+df
+```
+
+
+## Encuentra un modelo logístico para encontrar el mejor conjunto de predictores que auxilien a clasificar la dirección de cada observación.
+
+```{r}
+# Crear un modelo logístico sin la variable "Today"
+model <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data = df, family = binomial)
+
+# Obtener un resumen del modelo para ver los coeficientes y los intervalos de confianza
+summary(model)
+```
+El resumen del modelo logístico muestra los coeficientes estimados para cada variable predictora (Lag1, Lag2, Lag3, Lag4, Lag5 y Volume) junto con sus errores estándar, valores z y valores p. En este contexto:
+
+- El coeficiente de `Lag1` es -0.04127, pero no es estadísticamente significativo (p-value = 0.1181).
+- El coeficiente de `Lag2` es 0.05844 y es estadísticamente significativo con un nivel de significancia del 0.05 (p-value = 0.0296).
+- Los demás coeficientes (`Lag3`, `Lag4`, `Lag5` y `Volume`) no son estadísticamente significativos ya que sus valores p son mayores que 0.05.
+
+Estos resultados sugieren que, en este modelo, solo la variable `Lag2` tiene un efecto significativo en la dirección del mercado, mientras que las otras variables no tienen un efecto significativo y podrían ser eliminadas del modelo para simplificarlo.
+
+```{r}
+# Crear un modelo logístico sin la variable "Today"
+model <- glm(Direction ~ Lag2, data = df, family = binomial)
+
+# Obtener un resumen del modelo para ver los coeficientes y los intervalos de confianza
+summary(model)
+```
+
+
+```{r}
+# Interpretar el efecto de las variables en los odds (momios)
+
+# Ejemplo: Lag2
+coef_Lag2 <- coef(model)["Lag2"]
+odds_ratio_Lag2 <- exp(coef_Lag2)
+print(paste("Odds Ratio para Lag2:", odds_ratio_Lag2))
+```
+
+Un aumento de una unidad en una variable predictora multiplicará el odds (momio) de la respuesta por el exponente del coeficiente correspondiente.
+
+```{r}
+library(ggplot2)
+
+ggplot(data = df, mapping = aes(x = Direction, y = Lag2)) +
+geom_boxplot(aes(color = Direction)) +
+geom_point(aes(color = Direction)) +
+theme_bw() +
+theme(legend.position = "null")
+
+```
+
+### Divide la base de datos en un conjunto de entrenamiento (datos desde 1990 hasta 2008) y de prueba (2009 y 2010).
+```{r}
+# Filtrar datos de entrenamiento (1990-2008) y prueba (2009-2010)
+train_data <- subset(df, Year >= 1990 & Year <= 2008)
+test_data <- subset(df, Year >= 2009)
+
+# Ajustar el modelo en el conjunto de entrenamiento
+model <- glm(Direction ~ Lag2, family = binomial, data = train_data)
+
+summary(model)
+```
+
+```{r}
+# Realizar predicciones en el conjunto de prueba
+predictions <- predict(model, newdata = test_data, type = "response")
+
+predicciones <- predict(model, newdata = test_data, se.fit = TRUE, type = "response")
+
+# Convertir las probabilidades en clases (Up o Down) usando un umbral de 0.5
+predicted_direction <- ifelse(predictions > 0.5, "Up", "Down")
+
+# Calcular la precisión del modelo en el conjunto de prueba
+accuracy <- mean(predicted_direction == test_data$Direction)
+print(paste("Precisión del modelo en el conjunto de prueba:", round(accuracy, 2)))
+```
+
+## Representacion grafica
+
+```{r}
+# Límites del intervalo de confianza (95%) de las predicciones
+CI_inferior <- predicciones$fit - 1.96 * predicciones$se.fit
+CI_superior <- predicciones$fit + 1.96 * predicciones$se.fit
+
+# Matriz de datos con los nuevos puntos y sus predicciones
+datos_curva <- data.frame(Lag2 = test_data$Lag2, probabilidad =
+predicciones$fit, CI.inferior = CI_inferior, CI.superior = CI_superior)
+
+datos_curva
+```
+
+
+### Evaluacion del modelo
+
+
+
+#### Matriz de confusion
+```{r}
+library(caret)
+# Convertir la variable Direction en factor con los mismos niveles en ambos conjuntos
+train_data$Direction <- factor(train_data$Direction, levels = c("Down", "Up"))
+test_data$Direction <- factor(test_data$Direction, levels = c("Down", "Up"))
+
+#predicted_direction <- factor(predicted_direction, levels = c("Down", "Up"))
+
+# Realizar predicciones en el conjunto de prueba
+predictions <- predict(model, newdata = data.frame(Lag2 = test_data$Lag2), type = "response")
+predicted_direction <- ifelse(predictions > 0.5, "Up", "Down")
+
+predicted_direction <- factor(predicted_direction, levels = levels(test_data$Direction))
+
+
+# Crear la matriz de confusión y calcular otras métricas
+confusion <- confusionMatrix(predicted_direction, test_data$Direction)
+print(confusion)
+
+# Mostrar otras métricas como precisión, sensibilidad, especificidad, etc.
+print(confusion$byClass)
+```
+
+#### Chi squared
+```{r}
+# Chi cuadrada: Se evalúa la significancia del modelo con predictores con respecto al
+
+anova(model, test ='Chisq')
+```
+
+**Resultado del ANOVA:** 
+En el resultado del ANOVA, el p-valor asociado con Lag1 es 0.04123. Este p-valor indica que hay evidencia significativa en contra de la hipótesis nula para Lag2. En otras palabras, Lag2 es un predictor significativo para predecir la dirección del mercado en este modelo
+
+### Representacion grafica
+```{r}
+nuevos_puntos <- seq(from = min(df$Lag2), to = max(df$Lag2), by = 0.5)
+predicciones <- predict(model, newdata = data.frame(Lag2 = nuevos_puntos),se.fit = TRUE, type = "response")
+```
+
+
+```{r}
+# Límites del intervalo de confianza (95%) de las predicciones
+CI_inferior <- predicciones$fit - 1.96 * predicciones$se.fit 
+CI_superior <- predicciones$fit + 1.96 * predicciones$se.fit
+
+# Vector con nuevos valores interpolados en el rango del predictor Lag2:
+#nuevos_puntos <- seq(from = min(df$Lag2), to = max(df$Lag2), by = 0.5)
+
+# Matriz de datos con los nuevos puntos y sus predicciones
+datos_curva <- data.frame(Lag2 = nuevos_puntos, probabilidad = predicciones$fit, CI.inferior = CI_inferior, CI.superior = CI_superior)
+# Codificación 0,1 de la variable respuesta Direction
+df$Direction <- ifelse(df$Direction == "Down", yes = 0, no = 1) 
+ggplot(df, aes(x = Lag2, y = Direction)) +
+geom_point(aes(color = as.factor(Direction)), shape = "I", size = 3) + geom_line(data = datos_curva, aes(y = probabilidad), color = "firebrick") + geom_line(data = datos_curva, aes(y = CI.superior), linetype = "dashed") + geom_line(data = datos_curva, aes(y = CI.inferior), linetype = "dashed") + labs(title = "Modelo logístico Direction ~ Lag2", y = "P(Direction = Up | Lag2)", x = "Lag2") +
+scale_color_manual(labels = c("Down", "Up"), values = c("blue", "red")) + guides(color=guide_legend("Direction")) +
+theme(plot.title = element_text(hjust = 0.5)) +
+theme_bw()
+```
+
+ 
+Para el modelo logístico significativo que hemos ajustado usando la variable `Lag2`, la ecuación es la siguiente:
+
+\[ \text{logit}(p) = \beta_0 + \beta_1 \times \text{Lag2} \]
+
+Donde:
+- \( \text{logit}(p) \) representa el logaritmo natural de la odds (o momio) de que la variable de respuesta sea 1 (es decir, "Up" en lugar de "Down").
+- \( \beta_0 \) es el intercepto del modelo.
+- \( \beta_1 \) es el coeficiente asociado con la variable `Lag2`.
+
+Para graficar el modelo logístico, puedes utilizar la función de sigmoide (función logística) para transformar las probabilidades en el rango de 0 a 1:
+
+\[ p(\text{Lag2}) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 \times \text{Lag2})}} \]
+
+**Interpretación en el Contexto del Problema:**
+
+En este contexto específico del problema:
+
+- **Intercepto (\( \beta_0 \)):** Representa el logaritmo de la odds de que la variable de respuesta sea 1 (es decir, "Up" en lugar de "Down") cuando `Lag2` es 0. Sin embargo, dado que `Lag2` es un valor real y no una variable binaria, la interpretación directa del intercepto puede no ser tan informativa en este caso.
+
+- **Coeficiente de Lag2 (\( \beta_1 \)):** Este coeficiente indica cómo cambia el logaritmo de las odds cuando `Lag2` aumenta en una unidad. Un \( \beta_1 \) negativo indica que a medida que `Lag2` aumenta, las probabilidades de que la dirección del mercado sea "Up" en lugar de "Down" disminuyen.
+
+En otras palabras, si el valor de `Lag2` es más alto, las probabilidades de que el mercado esté en alza disminuyen. Por otro lado, si el valor de `Lag2` es más bajo, las probabilidades de que el mercado esté en alza aumentan.
+
+
+### Conclusión Final:
+
+#### Resultado del Análisis de Devianza:
+El análisis de devianza compara el modelo actual (que incluye Lag1, Lag2, Lag3, Lag4, Lag5 y Volume) con un modelo nulo (sin predictores) para determinar si el modelo actual es significativamente mejor que un modelo sin predictores. Según el análisis de devianza:
+
+- El p-valor asociado con Lag2 es 0.04123, lo que indica que Lag2 es estadísticamente significativo a un nivel del 5%. Esto confirma nuestra observación anterior de que Lag2 tiene un impacto significativo en la predicción de las tendencias del mercado en este modelo.
+
+#### Matriz de Confusión:
+La matriz de confusión proporciona información sobre el rendimiento del modelo en los datos de prueba. La matriz de confusión que proporcionaste muestra los siguientes resultados:
+
+- **Verdaderos Positivos (TP):** 9 (El modelo predijo correctamente que la dirección sería "Down" y fue correcto).
+- **Falsos Positivos (FP):** 5 (El modelo predijo "Up", pero la dirección real fue "Down").
+- **Verdaderos Negativos (TN):** 56 (El modelo predijo correctamente que la dirección sería "Up" y fue correcto).
+- **Falsos Negativos (FN):** 34 (El modelo predijo "Down", pero la dirección real fue "Up").
+
+#### Evaluación del Rendimiento:
+- **Precisión:** La precisión se refiere a la proporción de predicciones positivas (tanto verdaderas como falsas) que son realmente positivas. En este caso, la precisión para predecir la dirección "Down" sería 9 / (9 + 5) = 64.3%. Para la dirección "Up", sería 56 / (56 + 34) = 62.2%.
+
+- **Sensibilidad (Recall):** La sensibilidad mide la proporción de casos positivos reales que fueron correctamente identificados por el modelo. En este caso, la sensibilidad para la dirección "Down" sería 9 / (9 + 34) = 20.9%. Para la dirección "Up", sería 56 / (56 + 5) = 91.3%.
+
+- **Especificidad:** La especificidad mide la proporción de casos negativos reales que fueron correctamente identificados por el modelo. En este caso, la especificidad para la dirección "Down" sería 56 / (56 + 5) = 91.3%. Para la dirección "Up", sería 9 / (9 + 34) = 20.9%.
+
+#### Conclusiones Finales:
+- El análisis de devianza sugiere que solo Lag2 es un predictor significativo en este modelo. Por lo tanto, consideramos un modelo con solo Lag2 para el periodo requerido.
+
+- La matriz de confusión muestra que el modelo tiene una precisión del 62.5%, lo que significa que acierta aproximadamente el 62.5% de las veces en las direcciones del mercado en los datos de prueba.
+
+- La sensibilidad del modelo es baja (20.9%), lo que indica que el modelo tiene dificultades para identificar correctamente las direcciones "Down". Sin embargo, la especificidad es alta (91.3%), lo que indica que el modelo es bueno para identificar las direcciones "Up".
+
+- En general, el modelo actual tiene limitaciones en su capacidad para predecir las tendencias del mercado de manera precisa y consistente. Se deben considerar otros enfoques y posiblemente datos adicionales para mejorar la capacidad predictiva del modelo en futuras iteraciones.

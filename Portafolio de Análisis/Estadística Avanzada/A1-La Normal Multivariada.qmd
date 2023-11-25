@@ -1,0 +1,102 @@
+---
+title: "Normal1_Multivariada"
+author: "Alfredo García"
+format: html
+---
+
+# 1. Hallar el procedimiento para el cálculo de probabilidad de que P(X1 <= 2, X2 <= 3) con X1, X2 se distribuyen Normal con miu = ( miu_1 = 2.5, miu_2 = 4) y Sigma = [1.2, 0, 0, 2.3] 
+
+ 
+ 
+```{r}
+library(mnormt)
+
+miu <- c(2.5, 4)
+sigma <- matrix(c(1.2, 0, 0, 2.3), nrow = 2)
+x <- c(2, 3)
+
+probabilidad <- pmnorm(x, mean = miu, varcov = sigma)
+
+# Imprime el resultado
+cat("La probabilidad conjunta P(X1 <= 2, X2 <= 3) es:", probabilidad, "\n")
+
+```
+ 
+R. 0.08257
+
+# 2. Grafique la anterior distribución bivariada del problema 1
+
+```{r}
+
+# Cargar la librería mnormt
+library(mnormt)
+
+# Definir el rango para x y y (por ejemplo, 4 desviaciones estándar alrededor de la media)
+x <- seq(0.5, 4.5, 0.1)  # Rango para X1
+y <- seq(1, 7, 0.1)      # Rango para X2
+
+# Definir las medias y la matriz de covarianza
+mu <- c(2.5, 4)
+sigma <- matrix(c(1.2, 0, 0, 2.3), nrow = 2)
+
+# Función de densidad de probabilidad conjunta
+f <- function(x, y) {
+  dmnorm(cbind(x, y), mean = mu, varcov = sigma)
+}
+
+# Calcular los valores de densidad de probabilidad en la cuadrícula
+z <- outer(x, y, f)
+
+# Crear la gráfica 3D
+persp(x, y, z, theta = -30, phi = 25, expand = 0.6, ticktype = 'detailed', col = "pink",
+      xlab = "X1", ylab = "X2", zlab = "Densidad de Probabilidad")
+
+```
+
+
+# 3. Grafique los contornos de la anterior distribución normal bivariada correspondiente a las alturas de  0.01,  0.03, 0.05, 0.07, 0.09
+
+```{r}
+# Load the mnormt library
+library(mnormt)
+
+# Create the bivariate normal distribution with the given parameters
+x <- seq(0.5, 4.5, 0.1)  # Range for X1
+y <- seq(1, 7, 0.1)      # Range for X2
+mu <- c(2.5, 4)
+sigma <- matrix(c(1.2, 0, 0, 2.3), nrow = 2)
+f <- function(x, y) dmnorm(cbind(x, y), mean = mu, varcov = sigma)
+z <- outer(x, y, f)
+
+# Define the desired contour levels (heights)
+alturas <- c(0.01, 0.03, 0.05, 0.07, 0.09)
+
+# Create the contour plot
+contorno_colores <- c("red", "blue", "green", "purple", "orange")
+
+# Create the density plot of the bivariate distribution
+contour(x, y, z, levels = alturas, drawlabels = TRUE, col = contorno_colores,
+        main = "Contour Plots of Bivariate Normal Distribution",
+        xlab = "X1", ylab = "X2")
+
+# Create the 3D plot of the bivariate distribution
+persp(x, y, z, theta = 30, phi = 25, expand = 0.6, ticktype = 'detailed', col = "pink",
+      xlab = "X1", ylab = "X2", zlab = "Density")
+
+# Add a legend
+legend("topright", legend = as.character(alturas), fill = contorno_colores)
+
+```
+
+
+# 3. Comenta tus resultados: ¿cómo se relaciona el resultado del primer inciso con el segundo? ¿cómo se relacionan los gráficos de los incisos 2 y 3?
+
+Los resultados de los tres incisos están relacionados y nos proporcionan información sobre la misma distribución normal bivariada, pero presentados de diferentes maneras.
+
+1. **Cálculo de Probabilidad (Primer Inciso):** En el primer inciso, calculamos la probabilidad de que \(X_1 \leq 2\) y \(X_2 \leq 3\) en la distribución normal bivariada con medias \(\mu_1 = 2.5\) y \(\mu_2 = 4\), y matriz de covarianza \(\Sigma\) proporcionada. Esta probabilidad se calcula usando la función de distribución acumulativa y nos da un número que representa la probabilidad conjunta de que ambas variables estén por debajo de ciertos valores.
+
+2. **Gráfico de Distribución Bivariada (Segundo Inciso):**  En este gráfico, puedes ver visualmente cómo se distribuye la densidad de probabilidad en la región bidimensional definida por \(X_1\) y \(X_2\). La región donde \(X_1 \leq 2\) y \(X_2 \leq 3\) estaría representada en este gráfico, y puedes observar la forma general de la distribución y cómo varía.
+
+3. **Gráfico de Contornos (Tercer Inciso):** En este gráfico de contornos, las líneas de igual densidad de probabilidad se superponen en el gráfico de distribución bivariada. Puedes observar cómo cambia la densidad de probabilidad en diferentes regiones del espacio \(X_1\) y \(X_2\). La línea de contorno que corresponde a una probabilidad de \(0.08257333\) (el valor calculado en el primer inciso) te mostraría la región donde la probabilidad es igual a ese valor.
+
+En resumen, puedes relacionar el valor calculado en el primer inciso (\(0.08257333\)) con los gráficos del segundo y tercer inciso para comprender cómo se distribuye y varía la densidad de probabilidad en la región de interés (\(X_1 \leq 2\) y \(X_2 \leq 3\)) en la distribución normal bivariada. Los gráficos te proporcionan una representación visual de esta información.

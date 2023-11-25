@@ -1,0 +1,137 @@
+---
+title: "A7-Introducción a series de tiempo. Series estacionarias"
+author: "Alfredo García"
+format: html
+editor: visual
+---
+
+## Problema # 1
+
+Usa los datos de las ventas de gasolina en una estación de servicio para analizar modelos de pronósticos de la serie de tiempo:
+
+Semana	1	2	3	4	5	6	7	8	9	10	11	12
+Galones de gasolina (miles)	17	21	19	23	18	16	20	18	22	20	15	22
+
+### Leemos los datos
+
+```{r}
+semana <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+gas <- c(17, 21, 19, 23, 18, 16, 20, 18, 22, 20, 15, 22)
+
+T=data.frame(semana, gas)
+
+T
+```
+
+
+### Utiliza los métodos de suavizamiento:
+1. Promedios móviles
+
+```{r}
+promedio_movil <- function(data, k) {
+  n <- length(data)
+  suavizado <- numeric(n)
+  for (i in 1:(n - k + 1)) {
+    suavizado[i + k - 1] <- mean(data[i:(i + k - 1)])
+  }
+  return(suavizado)
+}
+
+
+k <- 3  # Tamaño de la ventana para el promedio móvil
+
+
+# Aplicar el promedio móvil a los datos
+suavizado_datos <- promedio_movil(T$gas, k)
+print(suavizado_datos)
+```
+
+
+2. Promedios móviles ponderados
+```{r}
+# Promedios móviles ponderados
+promedio_movil_ponderado <- function(data, k, pesos) {
+  n <- length(data)
+  suavizado <- numeric(n)
+  for (i in 1:(n - k + 1)) {
+    suavizado[i + k - 1] <- sum(data[i:(i + k - 1)] * pesos)
+  }
+  return(suavizado)
+}
+
+# Método de promedios móviles ponderados
+ pesos <- c(0.2, 0.3, 0.5)  # Definir los pesos
+ promedio_movil_ponderado(T$gas, 3, pesos)
+```
+
+
+3. Método de suavizamiento exponencial
+
+Para el método de suavizamiento exponencial, primero necesitamos una función para calcular el error cuadrático medio (CME) con un valor dado de alpha:
+
+```{r}
+calcular_cme <- function(data, alpha) {
+  n <- length(data)
+  suavizado <- numeric(n)
+  suavizado[1] <- data[1]
+  for (i in 2:n) {
+    suavizado[i] <- alpha * data[i - 1] + (1 - alpha) * suavizado[i - 1]
+  }
+  cme <- sum((data - suavizado)^2) / n
+  return(cme)
+}
+
+```
+
+Ahora, podemos crear un programa para encontrar el valor de alpha que minimiza el CME:
+
+
+```{r}
+# Encontrar el mejor valor de alpha para el suavizamiento exponencial
+mejor_alpha <- 0
+mejor_cme <- Inf
+
+for (alpha in seq(0, 1, by = 0.01)) {
+  cme <- calcular_cme(T$gas, alpha)
+  if (cme < mejor_cme) {
+    mejor_alpha <- alpha
+    mejor_cme <- cme
+  }
+}
+
+print(paste("Mejor valor de alpha:", mejor_alpha))
+print(paste("CME mínimo:", mejor_cme))
+
+```
+
+Crea un programa que te permita evaluar varios valores de 
+ en el método de suavizamiento exponencial hasta encontrar el valor de 
+ que minimice el CME.
+Concluye sobre cuál de los modelos usados es el mejor
+Predice cuáles son las ventas de gasolina esperadas para la semana 13 con el mejor método que hayas obtenido. 
+
+```{r}
+# Usar el mejor método para predecir las ventas de gasolina para la semana 13
+semana_nueva <- 13
+ventas_predichas <- NULL
+
+# Método de promedios móviles
+ k <- 3  # Tamaño de la ventana para el promedio móvil
+ ventas_predichas1 <- promedio_movil(T$gas, k)[length(T$gas)]  # Predicción para la semana 13
+
+# Método de promedios móviles ponderados
+ pesos <- c(0.2, 0.3, 0.5)  # Definir los pesos
+ ventas_predichas <- promedio_movil_ponderado(T$gas, length(T$gas), pesos)  # Predicción para la semana 13
+
+# Método de suavizamiento exponencial
+ventas_predichas <- mejor_alpha * T$gas[length(T$gas)] + (1 - mejor_alpha) * ventas_predichas[length(ventas_predichas)]
+
+print(paste("Ventas de gasolina predichas para la semana 13:", ventas_predichas1))
+
+```
+
+**Conclusión:**
+Después de analizar los datos utilizando diferentes métodos de suavizamiento, parece que el mejor enfoque para predecir las ventas de gasolina en nuestra estación de servicio es el método de promedios móviles. Usando una ventana de tamaño 3, este método nos dice que podemos esperar vender alrededor de 19 miles de galones en la semana 13.
+
+Es emocionante encontrar un método que funcione bien para nuestros datos actuales. Sin embargo, es bueno recordar que estos modelos son simplificaciones y pueden no tener en cuenta todos los factores que afectan nuestras ventas. Siempre es una buena idea seguir monitoreando y ajustando nuestros métodos a medida que obtenemos más datos para asegurarnos de que nuestras predicciones sigan siendo precisas en el futuro. ¡Buena suerte con nuestras futuras ventas de gasolina!
+
