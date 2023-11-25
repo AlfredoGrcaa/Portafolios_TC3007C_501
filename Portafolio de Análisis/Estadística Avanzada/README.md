@@ -1,4 +1,4 @@
-# Portafolio de Implementación del módulo de Estadística Avanzada
+# Portafolio de Análisis del módulo de Estadística Avanzada
 
 - A1-La Normal Multivariada.pdf: Reporte de la activiad de la Normal Multivariada.
 - A1-La Normal Multivariada.qmd: Codigo en R de la activiad de la Normal Multivariada.
